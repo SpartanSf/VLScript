@@ -2,7 +2,7 @@
 Compiled imperative lisp-like language for the obeliskVM
 
 ## Installation
-Copy `vlscript.lua` and the required installation files for (obeliskVM)[https://github.com/SpartanSf/obeliskVM]
+Copy `vlscript.lua` and the required installation files for [obeliskVM](https://github.com/SpartanSf/obeliskVM)
 
 ## Example
 Try the demo found in `demo.lua` for a working example of the language.
