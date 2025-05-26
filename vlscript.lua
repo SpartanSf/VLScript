@@ -16,6 +16,7 @@ function vlscript.buildAST(tokens)
         if token == "let" then
             local name = walk(tokens)
             local value = walk(tokens)
+
             return { type = "let", name = name, value = value }
         elseif token == "define" then
             local name = walk(tokens)
@@ -29,18 +30,20 @@ function vlscript.buildAST(tokens)
             }
             local body = walk(tokens)
             return { type = "if", condition = condition, body = body }
-        elseif token == "add" then
+        elseif token == "+" then
             local destVar = walk(tokens)
             local left = walk(tokens)
             local right = walk(tokens)
-            return { type = "add", destVar = destVar, left = left, right = right }
-        elseif token == "sub" then
+            return { type = "+", destVar = destVar, left = left, right = right }
+        elseif token == "-" then
             local destVar = walk(tokens)
             local left = walk(tokens)
             local right = walk(tokens)
-            return { type = "sub", destVar = destVar, left = left, right = right }
+            return { type = "-", destVar = destVar, left = left, right = right }
         elseif token == "halt" then
             return { type = "halt" }
+        elseif token == "return" then
+            return { type = "return" }
         elseif token == "call" then
             local destCall = walk(tokens)
             return { type = "call", destCall = destCall }
@@ -57,13 +60,6 @@ function vlscript.buildAST(tokens)
             return body
         else
             return token
-        end
-    end
-
-    local function walkBody(section, body)
-        ast[section] = {}
-        for _, node in ipairs(body) do
-            table.insert(ast[section], node)
         end
     end
 
@@ -85,9 +81,7 @@ function vlscript.compile(ast)
         for _, block in ipairs(astBlock) do
             if block.type == "define" then
                 labels[block.name] = #bytecode
-                bytecode[#bytecode + 1] = { "PUSHENV" }
                 parseBlock(block.body)
-                bytecode[#bytecode + 1] = { "POPENV" }
             elseif block.type == "if" then
                 local cond = block.condition
                 local labelElse = "endif_" .. tostring(#bytecode + 1)
@@ -114,14 +108,10 @@ function vlscript.compile(ast)
                     bytecode[#bytecode + 1] = { "JUMP_IF_EQUAL" }
                 end
 
-                bytecode[#bytecode + 1] = { "PUSHENV" }
-
                 parseBlock(block.body)
 
-                bytecode[#bytecode + 1] = { "POPENV" }
-
                 labels[labelElse] = #bytecode
-            elseif block.type == "sub" then
+            elseif block.type == "-" then
                 local leftNum = tonumber(block.left)
                 local rightNum = tonumber(block.right)
                 if rightNum then
@@ -137,31 +127,45 @@ function vlscript.compile(ast)
                 bytecode[#bytecode + 1] = { "SUB" }
                 bytecode[#bytecode + 1] = { "SET", block.destVar }
             elseif block.type == "let" then
-                bytecode[#bytecode + 1] = { "PUSH_IMMEDIATE", tonumber(block.value) }
+                if not tonumber(block.value) then
+                    if block.value:sub(1,2) == "#'" then
+                        bytecode[#bytecode + 1] = { "PUSH_IMMEDIATE", block.value:sub(3) }
+                    else
+                        bytecode[#bytecode + 1] = { "PUSH_VARIABLE", block.value }
+                    end
+                else
+                    bytecode[#bytecode + 1] = { "PUSH_IMMEDIATE", tonumber(block.value) }
+                end
                 bytecode[#bytecode + 1] = { "SET", block.name }
             elseif block.type == "jump" then
-                bytecode[#bytecode + 1] = { "PUSH_IMMEDIATE", labels[block.destLocation] }
+                bytecode[#bytecode + 1] = { "PUSH_VARIABLE", block.destLocation }
                 bytecode[#bytecode + 1] = { "JUMP" }
             elseif block.type == "call" then
-                bytecode[#bytecode + 1] = { "PUSH_IMMEDIATE", block.destCall }
+                bytecode[#bytecode + 1] = { "PUSH_VARIABLE", block.destCall }
                 bytecode[#bytecode + 1] = { "CALL" }
+            elseif block.type == "return" then
+                bytecode[#bytecode + 1] = { "RETURN" }
             elseif block.type == "halt" then
                 bytecode[#bytecode + 1] = { "HALT" }
             end
         end
     end
 
+    bytecode[#bytecode + 1] = { "PUSHENV" }
     parseBlock(ast.main)
+    bytecode[#bytecode + 1] = { "PUSH_IMMEDIATE", labels["main"] }
+    bytecode[#bytecode + 1] = { "CALL" }
+    bytecode[#bytecode + 1] = { "POPENV" }
 
     local refinedBytecode = {}
-    for _,byte in ipairs(bytecode) do
+    for _, byte in ipairs(bytecode) do
         if byte[1] ~= "PUSH_IMMEDIATE" then
-            refinedBytecode[#refinedBytecode+1] = byte
+            refinedBytecode[#refinedBytecode + 1] = byte
         else
             if type(byte[2]) == "string" then
-                refinedBytecode[#refinedBytecode+1] = {byte[1], labels[byte[2]]}
+                refinedBytecode[#refinedBytecode + 1] = { byte[1], labels[byte[2]] }
             else
-                refinedBytecode[#refinedBytecode+1] = byte
+                refinedBytecode[#refinedBytecode + 1] = byte
             end
         end
     end
