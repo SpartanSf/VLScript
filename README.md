@@ -2,7 +2,7 @@
 Compiled imperative lisp-like language for the obeliskVM
 
 ## Installation
-Run `https://raw.githubusercontent.com/SpartanSf/vlscript/main/install.lua`
+Run `wget run https://raw.githubusercontent.com/SpartanSf/vlscript/main/install.lua`
 
 Install [obeliskVM](https://github.com/SpartanSf/obeliskVM)
 
