@@ -1,4 +1,4 @@
-# vlscript
+# VLScript
 Compiled imperative lisp-like language for the obeliskVM
 
 ## Installation
@@ -11,14 +11,17 @@ Try the demo found in `demo.lua` for a working example of the language.
 
 ```lisp
 define main {
-    let x 5
+    let x 5000000000
+    let f #'loop
+    call f
+    halt
+}
 
-    define loop {
-        sub x x 1
-        if = x 0 {
-            halt
-        }
-        jump loop
+define loop {
+    - x x 1
+    if = x 0 {
+        return
     }
+    jump f
 }
 ```
