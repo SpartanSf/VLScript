@@ -1,10 +1,3 @@
---[[
-
-THIS TEST REQUIRES OBELISK
-
-]]
-
-
 local obelisk = require("obelisk")
 local vlscript = require("vlscript")
 
@@ -24,31 +17,13 @@ define main {
 }
 ]]
 
-
-
 local obeliskoid = obelisk.new() -- Spawn a new obelisk VM instance
 
-
-local start = os.epoch() / 1000
+-- Completely compile and load the bytecode for the previous vlscript script
 obeliskoid:quickBytecode(0, vlscript.compile(vlscript.buildAST(vlscript.tokenize(code))))
-local endtime = os.epoch() / 1000
-local partA = endtime - start
 
+obeliskoid:run() -- Runs the VM
 
-start = os.epoch() / 1000
-
-local ans
-repeat
-    ans = obeliskoid:run() -- Runs 1 cycle of the VM
-until ans
-
-endtime = os.epoch() / 1000
-
-local partB = endtime - start
 print("Final output information:\n")
 print("Stack: "..textutils.serialise(obeliskoid.stack))
-print("Variables: "..textutils.serialise(obeliskoid.variables))
-
-print("Compiled vlscript program in "..partA.."ms")
-print("Ran program in "..partB.."ms")
-print("Compilation & runtime "..partA+partB.."ms")
+print("Variables: "..textutils.serialise(obeliskoid.variables)) -- Should have x = 0, as x was decremented until 0
